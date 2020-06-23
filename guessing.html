@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+
+    <script src="node_modules/jquery/dist/jquery.min.js"></script>
+    <script src="node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="node_modules/bootstrap/dist/css/bootstrap.min.css">
+</head>
+<body>
+
+<div class="container-fluid">
+    <h2>Ermitteln von ggT</h2>
+    <h3>Eingabe</h3>
+    <div class="well">
+        <form class="form input">
+            <div class="row">
+                <div class="form-group col-12 col-md-4">
+                    <label for="number1">Zahl A:</label>
+                    <input name="number1" id="number1" class="form-control" required>
+                </div>
+                <div class="form-group col-12 col-md-4">
+                    <label for="number2">Zahl B:</label>
+                    <input name="number2" id="number2" class="form-control" required>
+                </div>
+                <div class="form-group col-12 col-md-4">
+                    <label class="d-none d-md-block">&nbsp;</label>
+                    <button type="submit" class="btn btn-primary">Starten</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div id="output" class="mt-5">
+        <h3>Ausgabe</h3>
+    </div>
+</div>
+
+<ul>
+    <li>Was fällt dir auf? Welche Zahlen muss man wirklich betrachten (man muss nur bis min/2 gehen!)</li>
+    <li>Schau dir die Teiler einer Zahl an. Du kannst die Teiler in zwei Gruppen aufteilen. Welche Teiler kannst du als Produkt anderer Teiler darstellen, welche nicht? (Primzahl lassen sich nicht darstellen, alle anderen lassen sich duch kleinere Teiler darstellen)</li>
+    <li>Wir können also jeden Teiler als ein Produkt aus Primzahlen (welche auch alle die gleiche Zahl teilen) darstellen. (hier vielleicht darauf eingehen, dass k*n=m k,n und m eine Zahl teilen)</li>
+</ul>
+
+<script>
+    $('form.input').submit(function() {
+        const number1 = Number($(this).find('input[name="number1"]').val());
+        const number2 = Number($(this).find('input[name="number2"]').val());
+        const min = Math.min(number1, number2);
+
+        const table = $("<table class='table table-bordered mb-3 table-responsive'></table>");
+
+        // t-Head einfügen
+        const thead = $('<thead>');
+        const theadtr = $('<tr>');
+        theadtr.append("<td></td>");
+        for(let i = 1; i <= min; i++) {
+            theadtr.append("<th>" + i + "</th>");
+        }
+        thead.append(theadtr);
+        table.append(thead);
+
+        // body einfüen
+        const tbody = $('<tbody>');
+        [number1, number2].forEach((number) => {
+             const tr = $("<tr>");
+             tr.append("<th>" + number + "</th>");
+             for(let i = 1; i <= min; i++) {
+                 tr.append("<td>" + createInput(number, i) + "</td>");
+             }
+             tbody.append(tr);
+        });
+        table.append(tbody);
+
+        $('#output').append(table);
+        return false;
+    });
+
+    $('#output').on('change', '.check', function() {
+        const val = Number($(this).val());
+        const td = $(this).parent();
+        switch(val) {
+            case -1:
+                td.attr("class", "");
+                break;
+            case 0:
+                td.attr("class", "bg-danger");
+                break;
+            case 1:
+                td.attr("class", "bg-success");
+                break;
+        }
+    });
+
+    function createInput(nenner, zaehler) {
+        return "<select class='form-control check' data-nenner='" + nenner + "' data-zaehler='" + zaehler + "'><option value='-1'></option><option value='1'>ist Teiler</option><option value='0'>ist kein Teiler</option></select>";
+    }
+</script>
+
+<style>
+    #output .check {
+        min-width: 130px;
+    }
+</style>
+
+</body>
+</html>

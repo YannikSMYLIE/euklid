@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Grafische Darstellung "Euklidischer Algorithmus"</title>
+
+    <script src="node_modules/jquery/dist/jquery.min.js"></script>
+    <script src="node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
+    <script src="algorithms.js"></script>
+    <link rel="stylesheet" type="text/css" href="node_modules/bootstrap/dist/css/bootstrap.min.css">
+
+    <!-- Colorpicker -->
+    <script src="components/colorpickers/colorpickers.js"></script>
+    <link rel="stylesheet" type="text/css" href="components/colorpickers/colorpickers.css">
+
+</head>
+<body>
+
+<div class="container-fluid">
+    <h1>Grafische Darstellung "Euklidischer Algorithmus"</h1>
+
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">Eingabe</h5>
+            <h6 class="card-subtitle mb-2 text-muted">Die Eingabe erfolgt natürlich durch die Lehrkraft. Diese Box würde dem Schüler also nicht angezeigt.</h6>
+            <div class="card-text">
+                <form class="form input">
+                    <div class="row">
+                        <div class="form-group col-12 col-md-4">
+                            <label for="number1">Zahl A:</label>
+                            <input type="number" name="number1" id="number1" class="form-control" required>
+                        </div>
+                        <div class="form-group col-12 col-md-4">
+                            <label for="number2">Zahl B:</label>
+                            <input type="number" name="number2" id="number2" class="form-control" required>
+                        </div>
+                        <div class="form-group col-12 col-md-4">
+                            <label class="d-none d-md-block">&nbsp;</label>
+                            <button type="submit" class="btn btn-primary">Starten</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mt-3">
+        <div class="card-body">
+            <h5 class="card-title">Hilfsmittel</h5>
+            <h6 class="card-subtitle mb-2 text-muted">Hier kann der Lehrer oder der Schüler selbst festlegen mit wieviel Unterstützung er die Aufgabe lösen will.</h6>
+            <div class="card-text">
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="help" id="none" value="none" checked>
+                    <label class="form-check-label" for="none">
+                        Ohne Hilfsmittel lösen
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="help" id="all" value="all">
+                    <label class="form-check-label" for="all">
+                        Alle möglichen Quadrate anzeigen
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="help" id="single" value="single" disabled>
+                    <label class="form-check-label text-muted" for="single">
+                        Nur das aktuell passende Quadrat anzeigen
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="card mt-3">
+        <div class="card-body">
+            <h5 class="card-title">Ausgabe</h5>
+            <div class="card-text mb-3">
+                <strong>Farbe für Freihandzeichnen:</strong><br>
+                <div class="colorpickers"></div>
+            </div>
+            <div class="card-text mt-2" id="output">
+
+
+
+
+
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="../scripts/colorpickers.js"></script>
+<script>
+
+    $('form.input').submit(function() {
+        const a = Number($(this).find('input[name="number1"]').val());
+        const b = Number($(this).find('input[name="number2"]').val());
+        createField(a, b);
+
+        return false;
+    });
+
+    $('#output').on('click', '.euklid .square', function() {
+        $(this).remove();
+        return false;
+    });
+
+    $('#output').on('mousedown', '.euklid td', function(event) {
+        if(event.which != 1) {
+            return;
+        }
+        if($(event.target).closest('.square').length || $(event.target).hasClass("square")) {
+            return false;
+        }
+
+        const table = $(this).closest('table');
+
+        // Square anlegen
+        const square = createSquare(color, 1);
+        $(this).append(square);
+
+        const startPositionX = $(this).offset().left;
+        const startPositionY = $(this).offset().top;
+
+        table.mousemove(function(event) {
+             const sizeSquare = square.outerWidth();
+             const minimumSizeMultipliedBy = square.attr("data-size");
+             const minimumSize = sizeSquare /  minimumSizeMultipliedBy;
+
+             // ToDo: Auch über die Y-Achse
+             if(event.pageX > startPositionX + sizeSquare) {
+                 setSquareSize(square, Number(square.attr("data-size")) + 1);
+             } else if(event.pageX < startPositionX + sizeSquare - minimumSize) {
+                 setSquareSize(square, Number(square.attr("data-size")) - 1);
+             }
+        });
+        $(document).mouseup(function() {
+            table.off("mousemove");
+            square.addClass("placed");
+            $(document).off("mouseup");
+        });
+        return false;
+    });
+
+    $('input[name="help"]').click(function() {
+        const val = $(this).val();
+        if(val == "none") {
+            $('.help').fadeOut();
+        } else {
+            $('.help').fadeIn();
+        }
+    });
+
+
+    /**
+     * Erzeugt ein neues Quadrat
+     * @param color
+     */
+    function createSquare(color, size) {
+        const square = $("<div>");
+        square.attr("title", "Quadrat entfernen");
+        square.attr("data-size", 1);
+        square.attr("data-color", color);
+        square.addClass("square");
+
+        // Wrapper anlegen
+        square.append("<div>1</div><div>1</div><div>1</div><div>1</div>");
+        return square;
+    }
+
+    /**
+     * Aktualisiert die Ansicht eines überlagernden Quadrats.
+     * @param square
+     * @param size
+     */
+    function setSquareSize(square, size) {
+        const table = square.closest('table');
+        const maxSize = Math.min(Number(table.attr("data-a")), Number(table.attr("data-b")));
+        size = Math.min(size, maxSize);
+
+        const percentPadding = 100 * size;
+        const fixedPadding = size - 1;
+        square.css("padding-right", percentPadding + "%");
+        square.css("padding-left", fixedPadding + "px");
+        square.css("padding-bottom", percentPadding + "%");
+        square.css("padding-top", fixedPadding + "px");
+        square.attr("data-size", size);
+        square.find('div').html(size);
+    }
+
+    /**
+     * Erstellt eine neue Tabelle mit den Seitenlängen a und b.
+     * @param a
+     * @param b
+     */
+    function createField(a, b) {
+        if(b < a) {
+            const tmp = a;
+            a = b;
+            b = tmp;
+        }
+
+        const table = $("<table>");
+        table.attr("data-a", a);
+        table.attr("data-b", b);
+        for(let i = 0; i < a; i++) {
+            const tr = $("<tr>");
+            for(let j = 0; j < b; j++) {
+                const td = $("<td>");
+                tr.append("<td></td>");
+            }
+            table.append(tr);
+        }
+
+        const div = $("<div>");
+        div.addClass("euklid");
+        div.append(table);
+        div.append("<div class='a'><span>" + a + "</span></div>");
+        div.append("<div class='b'><span>" + b + "</span></div>");
+
+        const wrapper = $("<div>");
+        wrapper.addClass("mb-3");
+        wrapper.addClass("wrapper");
+        wrapper.append(div);
+        $('#output').append(wrapper);
+
+        createHelp(table);
+        resizeField(table);
+    }
+
+    function createHelp(table) {
+        // Schritte ermitteln
+        const steps = [];
+        const a = Number(table.attr("data-a"));
+        const b = Number(table.attr("data-b"));
+        euklidSteps(a, b, steps);
+
+        // Hilfe hinzufügen
+        const help = $('<div>');
+        help.addClass("help");
+        help.css("display", "none");
+        help.addClass("mt-3");
+
+        steps.forEach((size, index) => {
+            const square = $("<div>");
+            square.attr("data-size", size);
+            square.attr("data-color", getColorKey(index));
+            square.addClass("square");
+            square.html(size);
+            help.append(square);
+        });
+
+        // Einfügen
+        const wrapper = table.closest('.wrapper');
+        wrapper.append(help);
+    }
+
+    /**
+     * Passt die größe einer Tabelle an.
+     * @param table
+     */
+    function resizeField(table) {
+        const wrapper = table.closest('.wrapper');
+        const wrapperWidth = wrapper.width();
+        const tableWidth = wrapperWidth - 100;
+        const bsize = table.attr("data-b");
+        const cellsize = Math.min(Math.floor(tableWidth / bsize), 40);
+
+        // Tabellenzellen anpassen
+        table.find('td').each(function() {
+            $(this).css("width", cellsize + "px");
+            $(this).css("height", cellsize + "px");
+        });
+
+        // Hilfsfunktion anpassen
+        wrapper.find('.help div').each(function() {
+            const size = $(this).attr("data-size");
+            const width = size * cellsize;
+            $(this).css("height", width + "px");
+            $(this).css("line-height", width + "px");
+            $(this).css("width", width + "px");
+        });
+    }
+
+
+    $('#output').on('mousedown', '.help .square', function(ev) {
+        ev.preventDefault();
+
+        const square = $(this);
+        const wrapper = square.closest('.wrapper');
+
+        // Kopie soll Mauszeiger folgen
+        const follower = square.clone();
+        follower.html("")
+        follower.addClass("follower");
+        $('body').append(follower);
+        $(document).mousemove(function(ev) {
+            follower.css("left", (ev.pageX + 5) + "px");
+            follower.css("top", (ev.pageY + 5) + "px");
+        });
+
+        // Drag ermöglichen
+        $(document).mouseup(function() {
+            follower.remove();
+            $(document).off("mousemove");
+            $(document).off("mouseup");
+            wrapper.find('table td').off("mouseup");
+        });
+        wrapper.find('table td').mouseup(function() {
+            // Quadrat in Tabelle ablegen
+            const newSquare = createSquare(square.attr("data-color"));
+            $(this).append(newSquare);
+            setSquareSize(newSquare, square.attr("data-size"));
+            newSquare.addClass("placed");
+
+            // Follower entfernen
+            follower.remove();
+
+            // Events löschen
+            $(document).off("mousemove");
+            $(document).off("mouseup");
+            wrapper.find('table td').off("mouseup");
+        });
+    });
+</script>
+
+<style>
+
+    div.euklid {
+        border: 3px solid #000;
+        display: inline-block;
+        position: relative;
+        margin: 0 0 50px 50px;
+    }
+    div.euklid table td {
+        height: 10px;
+        width: 10px;
+        border: solid 1px #DDD;
+        position: relative;
+        cursor: crosshair;
+    }
+    .square {
+        opacity: 0.5;
+        border-style: solid;
+        border-width: 1px;
+    }
+    div.wrapper .euklid table .square {
+        position: absolute;
+        z-index: 10000;
+        top: -1px;
+        left: -1px;
+        padding-left: -1px;
+        padding-bottom: -1px;
+        padding-right: 100%;
+        padding-bottom: 100%;
+    }
+    div.wrapper .euklid table .square.placed {
+        cursor: not-allowed;
+    }
+    .square.follower {
+        position: absolute;
+    }
+    div.wrapper .help .square {
+        color: #FFF;
+        font-size: 1.5em;
+        font-weight: bold;
+        text-align: center;
+        margin-right: 15px;
+        cursor: grab;
+    }
+    div.euklid .square div {
+        position: absolute;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-weight: bold;
+        color: #FFF;
+    }
+    div.euklid .square div:nth-child(2n) {
+        width: 20px;
+    }
+    div.euklid .square div:nth-child(2n+1) {
+        height: 20px;
+    }
+    div.euklid .square div:nth-child(1) {
+        top: 0;
+        left: 0;
+        right: 0;
+    }
+    div.euklid .square div:nth-child(2) {
+        top: 0;
+        bottom: 0;
+        left: 0;
+    }
+    div.euklid .square div:nth-child(3) {
+        bottom: 0;
+        left: 0;
+        right: 0;
+    }
+    div.euklid .square div:nth-child(4) {
+        top: 0;
+        bottom: 0;
+        right: 0;
+    }
+    div.wrapper .help {
+        display: flex;
+        align-items: end;
+        margin-left: 50px;
+    }
+
+
+
+
+
+    div.euklid .a {
+        top: 0;
+        left: -50px;
+        bottom: 0;
+        width: 50px;
+        position: absolute;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-weight: bold;
+    }
+    div.euklid .b {
+        left: 0;
+        right: 0;
+        bottom: -50px;
+        height: 50px;
+        position: absolute;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-weight: bold;
+
+    }
+</style>
+
+</body>
+</html>

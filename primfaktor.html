@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Primfaktorzerlegung</title>
+
+    <script src="node_modules/jquery/dist/jquery.min.js"></script>
+    <script src="node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="node_modules/bootstrap/dist/css/bootstrap.min.css">
+</head>
+<body>
+
+<div class="container-fluid">
+    <h1>Ermitteln des größten gemeinsamen Teilers durch Primfaktorzerlegung</h1>
+
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">Eingabe</h5>
+            <h6 class="card-subtitle mb-2 text-muted">Die Eingabe erfolgt natürlich durch die Lehrkraft. Diese Box würde dem Schüler also nicht angezeigt.</h6>
+            <div class="card-text">
+                <form class="form input">
+                    <div class="row">
+                        <div class="form-group col-12 col-md-4">
+                            <label for="number1">Zahl A:</label>
+                            <input type="number" name="number1" id="number1" class="form-control" required>
+                        </div>
+                        <div class="form-group col-12 col-md-4">
+                            <label for="number2">Zahl B:</label>
+                            <input type="number" name="number2" id="number2" class="form-control" required>
+                        </div>
+                        <div class="form-group col-12 col-md-4">
+                            <label class="d-none d-md-block">&nbsp;</label>
+                            <button type="submit" class="btn btn-primary">Starten</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="card mt-3">
+        <div class="card-body">
+            <h5 class="card-title">Ausgabe</h5>
+            <h6 class="card-subtitle mb-2 text-muted">Die Aufgaben würden dem Schüler zusammen mit einer Erklärung (z.B. dass das Feld <em>Quotient</em> den Quotienten der Zahl und des Produkts enthält) angezeigt.</h6>
+            <div class="card-text mt-2" id="output">
+            </div>
+        </div>
+    </div>
+</div>
+
+<ul>
+    <li>Der größte Gemeinsame Teiler ist somit das Produkt der übereinstimmenden Primfaktoren</li>
+
+<script>
+    $('form.input').submit(function() {
+        const number1 = Number($(this).find('input[name="number1"]').val());
+        const number2 = Number($(this).find('input[name="number2"]').val());
+        const min = Math.min(number1, number2);
+
+        const table = $("<table class='table table-bordered mb-3 border-0'></table>");
+
+        // t-Head einfügen
+        const thead = $('<thead>');
+        const theadtr = $('<tr>');
+        theadtr.append("<th>Zahl</th><td colspan='1' class='primfaktoren text-center'>Primfaktoren</td><th class='product'>Produkt</th><th>Quotient</th><td class='border-0'><div class='ml-3'>Primfaktor hinzufügen</div></td>");
+        thead.append(theadtr);
+        table.append(thead);
+
+        // body einfüen
+        const tbody = $('<tbody>');
+        [number1, number2].forEach((number) => {
+            const tr = $("<tr class='number'></tr>");
+            tr.append("<th>" + number + "</th>");
+            tr.append("<td data-occupied='1' data-number='1'>1</td>");
+            tr.append("<th class='product' data-goal='" + number + "'>1</th><td class='quotient'>" + number + "</td>");
+            tr.append("<td class='text-right border-0'>" + createInput() + "</td>");
+            tbody.append(tr);
+        });
+        table.append(tbody);
+
+        // ggt einfügen
+        table.append("<tfoot><tr><th>ggT</th><td data-number='1'>1</td><td colspan='3' class='border-0 ggt'>" + createGgtInput() + "</td></tr></tfoot>");
+
+        $('#output').append(table);
+        return false;
+    });
+
+    /**
+     * Einen neuen Primfaktor hinzufügen
+     */
+    $('#output').on('submit', 'form', function() {
+        const input = $(this).find('input');
+        const prim = Number(input.val());
+        input.val("");
+
+        if(!isPrime(prim)) {
+            alert("Diese Zahl ist keine Primzahl!");
+            return false;
+        }
+
+        const tr = $(this).closest('tr');
+
+        // Wenn es noch kein Feld gibt, Feld hier anlegen
+        if(!tr.find('td[data-number="' + prim + '"][data-occupied="0"]').length) {
+            addRow(prim, tr.closest('table'));
+        }
+
+        // Wert einfügen
+        const field = tr.find('td[data-number="' + prim + '"][data-occupied="0"]').first();
+        field.html(prim);
+        field.attr("data-occupied", 1);
+
+        // Produkt neu berechnen
+        tr.parent().find('tr.number').each(function() {
+            calculateProduct($(this));
+        });
+        updateFoot($(this).closest('table'));
+        return false;
+    });
+
+    /**
+     * Einen Primfaktor entfernen
+     */
+    $('#output').on('click', 'td[data-occupied="1"][data-number!="1"]', function () {
+        $(this).html("");
+        $(this).attr("data-occupied", 0);
+
+        const tr = $(this).closest('tr');
+        const table = $(this).closest('table');
+        removeEmptyColummns(table);
+        calculateProduct(tr);
+        updateFoot(table);
+        return false;
+    });
+
+    function addRow(number, table) {
+        // Head erweiten
+        const headtd = table.find('thead .primfaktoren');
+        const colspan = Number(headtd.attr("colspan"));
+        headtd.attr("colspan", colspan + 1);
+
+        // In Tabellenbody einfügen
+        // ToDo: An korrekter Stelle einfügen
+        table.find('tbody tr.number').each(function() {
+            const product = $(this).find('.product');
+            product.before("<td data-occupied='0' data-number='" + number + "'></td>");
+        });
+
+        // In Tabellenfooter einfügen
+        table.find('tfoot td.ggt').before("<td data-number='" + number + "'></td>");
+    }
+
+    /**
+     * Entfernt alle leeren Spalten
+     */
+    function removeEmptyColummns(table) {
+        const firstCells = table.find('tbody tr').first().find('td[data-number]');
+        const secondCells = table.find('tbody tr').last().find('td[data-number]');
+
+        for(let i = 0; i < firstCells.length; i++) {
+            const cell1 = $(firstCells.get(i));
+            const cell2 = $(secondCells.get(i));
+            if(cell1.attr("data-occupied") == "0" && cell2.attr("data-occupied") == "0") {
+                // Zellen entfernen
+                cell1.remove();
+                cell2.remove();
+
+                // Im Footer auch entfernen
+                const footCells = table.find('tfoot td[data-number]');
+                const footCell = $(footCells.get(i));
+                footCell.remove();
+
+                // Im Header um eins reduzieren
+                const primfaktorenTd = table.find('thead .primfaktoren');
+                const colspan = Number(primfaktorenTd.attr("colspan"));
+                primfaktorenTd.attr("colspan", colspan - 1);
+                return;
+            }
+        }
+    }
+
+    /**
+     * Aktualisiert den Footer eine Tabelle
+     * @param table
+     */
+    function updateFoot(table) {
+        const firstCells = table.find('tbody tr').first().find('td[data-number]');
+        const secondCells = table.find('tbody tr').last().find('td[data-number]');
+        const footCells = table.find('tfoot td[data-number]');
+
+        for(let i = 0; i < firstCells.length; i++) {
+            const cell1 = $(firstCells.get(i));
+            const cell2 = $(secondCells.get(i));
+            const footCell = $(footCells.get(i));
+
+            if(cell1.attr("data-occupied") == "1" && cell2.attr("data-occupied") == "1") {
+                footCell.html(footCell.attr("data-number"));
+            } else {
+                footCell.html("");
+            }
+        }
+    }
+
+    /**
+     * Berechnet das Produkt einer Zeile.
+     * @param tr
+     */
+    function calculateProduct(tr) {
+        const productTd = tr.find('.product');
+        const addForm = tr.find('form.add');
+        const quotientTd = tr.find('.quotient');
+        const goal = Number(productTd.attr("data-goal"));
+
+        // Bisheriges Produkt ermitteln
+        let product = 1;
+        tr.find('td[data-occupied="1"]').each(function() {
+            console.log($(this));
+            product *= Number($(this).html());
+        });
+
+        // Anzeige anpassen
+        productTd.html(product);
+        if(product == goal) {
+            productTd.addClass("bg-success");
+            addForm.fadeOut();
+        } else {
+            productTd.removeClass("bg-success");
+            addForm.fadeIn();
+        }
+        const quotient = goal / product;
+        quotientTd.html(quotient);
+    }
+
+    // Primzahltest
+    const p = [];
+    p[0] = 2;
+    function isPrime(x) {
+        if(x < 2 || x%1 != 0 || (x%2 == 0 && x != 2)) return false;
+
+        let j = 0, n = 3;
+        while(n*n <= x) {
+            let nPrime = true;
+
+            for(let i = 0; p[i] * p[i] <= n; i++) {
+                if(n % p[i]==0) {
+                    nPrime = false;
+                    break;
+                }
+            }
+
+            if(nPrime) {
+                if(x%n == 0) {
+                    return false;
+                }
+                p[j] = n;
+                j++;
+            }
+            n+=2;
+        }
+        return true;
+    }
+
+
+
+    function createInput() {
+        return "<form class='add form-inline ml-3'><input type='number' class='form-control check mr-1'><button type='submit' class='btn btn-success'>+</button></form>";
+    }
+    function createGgtInput() {
+        return "<form class='ggt form-inline'><input type='number' class='form-control check mr-1' placeholder='Hier den ggT eintragen'><button type='submit' class='btn btn-primary'>ggT überprüfen</button></form>";
+    }
+</script>
+
+<style>
+    #output .check {
+        min-width: 130px;
+    }
+    #output table tr th:first-child {
+        border-right-width: 4px;
+    }
+    #output table tr .product, #output table tfoot td.ggt {
+        border-left-width: 4px;
+    }
+    #output td[data-occupied="1"]:not([data-number="1"]) {
+        cursor: pointer;
+        transition: background 100ms;
+    }
+    #output td[data-occupied="1"]:not([data-number="1"]):hover {
+        background: red;
+    }
+</style>
+
+</body>
+</html>

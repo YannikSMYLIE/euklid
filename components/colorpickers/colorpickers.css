@@ -1,0 +1,11 @@
+.colorpicker {
+    display: inline-block;
+    height: 30px;
+    width: 30px;
+    border-radius: 15px;
+    opacity: 0.5;
+    cursor: pointer;
+    border-width: 1px;
+    border-style: solid;
+    margin-right: 5px;
+}

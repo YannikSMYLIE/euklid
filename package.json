@@ -1,0 +1,15 @@
+{
+  "name": "guessing",
+  "version": "1.0.0",
+  "description": "Stellt verschiedene Möglichkeiten vor um einen ggT zu ermitteln.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Yannik Börgener",
+  "license": "ISC",
+  "dependencies": {
+    "bootstrap": "^4.5.0",
+    "jquery": "^3.5.1"
+  }
+}
